@@ -76,7 +76,7 @@ public class UserApiTest {
             .get("/users/{id}")
         .then()
             .statusCode(404)
-            .body(isEmpty());
+            .body(emptyString());
     }
 
     // ─────────────────────────────────────────
@@ -143,7 +143,7 @@ public class UserApiTest {
             .delete("/users/{id}")
         .then()
             .statusCode(204)
-            .body(isEmptyOrNullString());
+            .body(emptyString());
     }
 
     // ─────────────────────────────────────────
@@ -170,7 +170,6 @@ public class UserApiTest {
         return new Object[][] {
             {1, 6},
             {2, 6},
-            // TODO: agrega más escenarios de paginación
         };
     }
 }
