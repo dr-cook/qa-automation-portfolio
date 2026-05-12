@@ -2,9 +2,6 @@ package com.drcook.sdet.api.tests;
 
 import com.drcook.sdet.api.config.ApiConfig;
 import com.drcook.sdet.api.models.User;
-import io.qameta.allure.Description;
-import io.qameta.allure.Severity;
-import io.qameta.allure.SeverityLevel;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -13,13 +10,12 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
 /**
- * Suite de tests para User API.
- * Cubre CRUD completo + casos negativos + DataProvider para escenarios múltiples.
+ * CRUD tests contra JSONPlaceholder /users y /posts.
  *
- * TODO para el reto de la semana:
- *   1. Implementar createUser_withInvalidPayload_returns400()
+ * TODO (tu reto de la semana):
+ *   1. Implementar createPost_withInvalidPayload_returns400orIgnored()
  *   2. Implementar updateUser_withPatch_updatesOnlySpecifiedFields()
- *   3. Agregar validación de JSON Schema en getUser_validResponse_matchesSchema()
+ *   3. Agregar validación de JSON Schema con user-schema.json
  */
 public class UserApiTest {
 
@@ -28,148 +24,107 @@ public class UserApiTest {
         io.restassured.RestAssured.requestSpecification = ApiConfig.getBaseSpec();
     }
 
-    // ─────────────────────────────────────────
-    // GET Tests
-    // ─────────────────────────────────────────
+    // ─── GET Tests ───
 
     @Test(groups = {"smoke", "P1"})
-    @Description("GET /users retorna lista paginada con datos válidos")
-    @Severity(SeverityLevel.CRITICAL)
-    public void getUsers_returnsPagedList_withValidStructure() {
+    public void getUsers_returnsList_withValidStructure() {
         given()
-            .queryParam("page", 1)
         .when()
             .get("/users")
         .then()
             .statusCode(200)
-            .body("page", equalTo(1))
-            .body("data", not(empty()))
-            .body("data[0].id", notNullValue())
-            .body("data[0].email", containsString("@"))
-            .body("data[0].first_name", notNullValue());
+            .body("$", hasSize(10))
+            .body("[0].id", notNullValue())
+            .body("[0].email", containsString("@"))
+            .body("[0].name", notNullValue());
     }
 
     @Test(groups = {"regression", "P1"})
-    @Description("GET /users/{id} retorna usuario específico")
-    @Severity(SeverityLevel.CRITICAL)
     public void getUser_withValidId_returnsCorrectUser() {
-        int userId = 2;
+        int userId = 1;
         given()
             .pathParam("id", userId)
         .when()
             .get("/users/{id}")
         .then()
             .statusCode(200)
-            .body("data.id", equalTo(userId))
-            .body("data.email", notNullValue())
-            .body("data.first_name", notNullValue())
-            .body("data.last_name", notNullValue());
+            .body("id", equalTo(userId))
+            .body("email", notNullValue())
+            .body("name", notNullValue())
+            .body("company.name", notNullValue());
     }
 
     @Test(groups = {"regression", "P2"})
-    @Description("GET /users/{id} con ID inexistente retorna 404")
-    @Severity(SeverityLevel.NORMAL)
     public void getUser_withInvalidId_returns404() {
         given()
             .pathParam("id", 9999)
         .when()
             .get("/users/{id}")
         .then()
-            .statusCode(404)
-            .body(emptyString());
+            .statusCode(404);
     }
 
-    // ─────────────────────────────────────────
-    // POST Tests
-    // ─────────────────────────────────────────
+    // ─── POST Tests ───
 
     @Test(groups = {"regression", "P1"})
-    @Description("POST /users crea un usuario y retorna 201 con ID generado")
-    @Severity(SeverityLevel.CRITICAL)
-    public void createUser_withValidPayload_returns201WithId() {
-        User newUser = User.builder()
-                .name("Douglas Cook")
-                .job("SDET Engineer")
-                .build();
+    public void createPost_withValidPayload_returns201() {
+        String payload = "{\"title\":\"SDET Test Post\",\"body\":\"Testing from RestAssured\",\"userId\":1}";
 
         given()
-            .body(newUser)
+            .body(payload)
         .when()
-            .post("/users")
+            .post("/posts")
         .then()
             .statusCode(201)
             .body("id", notNullValue())
-            .body("name", equalTo("Douglas Cook"))
-            .body("job", equalTo("SDET Engineer"))
-            .body("createdAt", notNullValue());
+            .body("title", equalTo("SDET Test Post"));
     }
 
-    // ─────────────────────────────────────────
-    // PUT Tests
-    // ─────────────────────────────────────────
+    // ─── PUT Tests ───
 
     @Test(groups = {"regression", "P2"})
-    @Description("PUT /users/{id} actualiza usuario completo y retorna 200")
-    @Severity(SeverityLevel.NORMAL)
-    public void updateUser_withValidPayload_returns200() {
-        User updatedUser = User.builder()
-                .name("Douglas Cook")
-                .job("Senior SDET")
-                .build();
+    public void updatePost_withValidPayload_returns200() {
+        String payload = "{\"id\":1,\"title\":\"Updated Title\",\"body\":\"Updated body\",\"userId\":1}";
 
         given()
-            .pathParam("id", 2)
-            .body(updatedUser)
+            .pathParam("id", 1)
+            .body(payload)
         .when()
-            .put("/users/{id}")
+            .put("/posts/{id}")
         .then()
             .statusCode(200)
-            .body("name", equalTo("Douglas Cook"))
-            .body("job", equalTo("Senior SDET"))
-            .body("updatedAt", notNullValue());
+            .body("title", equalTo("Updated Title"));
     }
 
-    // ─────────────────────────────────────────
-    // DELETE Tests
-    // ─────────────────────────────────────────
+    // ─── DELETE Tests ───
 
     @Test(groups = {"regression", "P2"})
-    @Description("DELETE /users/{id} elimina usuario y retorna 204")
-    @Severity(SeverityLevel.NORMAL)
-    public void deleteUser_withValidId_returns204() {
+    public void deletePost_withValidId_returns200() {
         given()
-            .pathParam("id", 2)
+            .pathParam("id", 1)
         .when()
-            .delete("/users/{id}")
+            .delete("/posts/{id}")
         .then()
-            .statusCode(204)
-            .body(emptyString());
+            .statusCode(200);
     }
 
-    // ─────────────────────────────────────────
-    // DataProvider — múltiples páginas
-    // ─────────────────────────────────────────
+    // ─── DataProvider — múltiples usuarios ───
 
-    @Test(dataProvider = "pageNumbers", groups = {"regression", "P2"})
-    @Description("GET /users con distintas páginas — verifica paginación")
-    @Severity(SeverityLevel.NORMAL)
-    public void getUsers_multiplePages_allReturn200(int page, int expectedPerPage) {
+    @Test(dataProvider = "userIds", groups = {"regression", "P2"})
+    public void getUser_multipleIds_allReturn200(int userId) {
         given()
-            .queryParam("page", page)
-            .queryParam("per_page", expectedPerPage)
+            .pathParam("id", userId)
         .when()
-            .get("/users")
+            .get("/users/{id}")
         .then()
             .statusCode(200)
-            .body("page", equalTo(page))
-            .body("data", not(empty()));
+            .body("id", equalTo(userId));
     }
 
-    @DataProvider(name = "pageNumbers")
-    public Object[][] pageNumbers() {
+    @DataProvider(name = "userIds")
+    public Object[][] userIds() {
         return new Object[][] {
-            {1, 6},
-            {2, 6},
+            {1}, {2}, {5}, {10}
         };
     }
 }

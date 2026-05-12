@@ -9,34 +9,21 @@ import io.restassured.specification.RequestSpecification;
 
 /**
  * Configuración base para todos los tests de API.
- * Centraliza baseURI, headers, autenticación y logging.
+ * Usa JSONPlaceholder (https://jsonplaceholder.typicode.com) como API pública de pruebas.
  */
 public class ApiConfig {
 
-    // Usa variable de entorno o fallback a la API pública de pruebas
     private static final String BASE_URL = System.getenv("API_BASE_URL") != null
             ? System.getenv("API_BASE_URL")
-            : "https://reqres.in";
-
-    private static final String API_KEY = System.getenv("API_KEY") != null
-            ? System.getenv("API_KEY")
-            : "";
+            : "https://jsonplaceholder.typicode.com";
 
     public static RequestSpecification getBaseSpec() {
         return new RequestSpecBuilder()
                 .setBaseUri(BASE_URL)
-                .setBasePath("/api")
                 .setContentType(ContentType.JSON)
                 .addHeader("Accept", "application/json")
                 .addFilter(new RequestLoggingFilter())
                 .addFilter(new ResponseLoggingFilter())
-                .build();
-    }
-
-    public static RequestSpecification getAuthSpec() {
-        return new RequestSpecBuilder()
-                .addRequestSpecification(getBaseSpec())
-                .addHeader("Authorization", "Bearer " + API_KEY)
                 .build();
     }
 }
